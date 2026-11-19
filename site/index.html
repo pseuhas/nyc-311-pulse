@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Compare two weeks of 311 service requests across New York City's five boroughs.">
+  <title>311 Pulse · New York City</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to data</a>
+  <header class="mast">
+    <div class="wrap mast-inner">
+      <a class="brand" href="./"><span class="mark" aria-hidden="true">311</span> PULSE</a>
+      <span class="caption">NYC OPEN DATA / FIELD NOTES</span>
+    </div>
+  </header>
+  <main class="wrap" id="main">
+    <div class="hero">
+      <div>
+        <p class="eyebrow"><span></span> CIVIC SIGNALS / 01</p>
+        <h1>What New York<br>reported.</h1>
+        <p class="dek">Seven days of 311 service requests, compared with the week before. See which problems moved and where.</p>
+      </div>
+      <div class="period" id="period" aria-live="polite"><span class="eyebrow">REPORTING WINDOW</span><strong>Loading snapshot…</strong></div>
+    </div>
+    <p id="state" class="state" role="status">Loading the latest published data.</p>
+    <section id="dashboard" hidden aria-label="NYC 311 dashboard">
+      <div class="toolbar">
+        <label for="area">Explore a borough</label>
+        <select id="area"></select>
+      </div>
+      <section class="metrics" id="metrics" aria-label="Summary numbers"></section>
+      <div class="panels">
+        <section class="panel" aria-labelledby="daily-heading">
+          <div class="heading"><p class="eyebrow">01 / VOLUME</p><h2>Day by day</h2><p>Matching weekdays in the two seven-day periods.</p></div>
+          <div class="legend"><span><i class="current-dot"></i>Current</span><span><i class="previous-dot"></i>Previous</span></div>
+          <div id="chart"></div>
+          <details><summary>View exact daily counts</summary><div id="daily-table" class="scroll"></div></details>
+        </section>
+        <section class="panel" aria-labelledby="borough-heading">
+          <div class="heading"><p class="eyebrow">02 / GEOGRAPHY</p><h2>Across the city</h2><p>Choose a borough to drill in. Counts are not population-adjusted.</p></div>
+          <div id="boroughs" class="boroughs"></div>
+        </section>
+      </div>
+      <section class="panel categories" aria-labelledby="categories-heading">
+        <div class="heading"><p class="eyebrow">03 / BREAKDOWN</p><h2>Reported problems</h2><p>Ranked by request volume in the current week. Search includes problems reported only in the prior week.</p></div>
+        <label for="search" class="search-label">Filter problems</label>
+        <input id="search" type="search" placeholder="Try noise or parking">
+        <div id="categories" class="scroll"></div>
+        <button id="more" class="more" hidden type="button">Show more problems</button>
+      </section>
+    </section>
+    <noscript><p>This dashboard needs JavaScript to display the snapshot. <a href="./pulse.json">Download the aggregate data</a>.</p></noscript>
+    <footer>
+      <div><strong>About the data</strong><p>Counts reflect service requests submitted to 311, not unique incidents, overall prevalence, or response quality. NYC Open Data updates daily and may revise recent totals. The newest local day and the day before it are left out to allow reporting time.</p></div>
+      <div><a href="https://data.cityofnewyork.us/d/erm2-nwe9">NYC Open Data →</a><br><a href="./pulse.json" download>Download aggregate JSON ↓</a></div>
+    </footer>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
