@@ -31,6 +31,14 @@
         <select id="area"></select>
       </div>
       <section class="metrics" id="metrics" aria-label="Summary numbers"></section>
+      <section class="panel drivers" aria-labelledby="drivers-heading">
+        <div class="heading">
+          <p class="eyebrow">00 / WEEKLY CHANGE</p>
+          <h2 id="drivers-heading">What moved?</h2>
+          <p>Which reported problems account for the biggest increases and decreases?</p>
+        </div>
+        <div id="change-drivers" aria-live="polite"></div>
+      </section>
       <div class="panels">
         <section class="panel" aria-labelledby="daily-heading">
           <div class="heading"><p class="eyebrow">01 / VOLUME</p><h2>Day by day</h2><p>Matching weekdays in the two seven-day periods.</p></div>

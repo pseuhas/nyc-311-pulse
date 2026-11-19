@@ -49,3 +49,9 @@ Dataset use is subject to the [NYC Open Data terms](https://data.cityofnewyork.u
 - `npm test`: window boundaries and DST, source query contract, normalization, retry and hard failures, contiguous coverage, filter reconciliation, freshness and invalid data.
 - `npm run build`: live-source integration test; investigate 429/5xx errors in Actions or retry later. Check the canonical dataset for schema changes if 400s recur.
 - The static interface uses no map provider, analytics, remote scripts, or JS dependencies. You can host `dist/` on another static host unchanged.
+
+## Evidence for week-over-week changes
+
+The **What moved?** panel ranks the largest signed count changes, shows all remaining categories as a net contribution, and reconciles the sum to the headline change. It responds to the selected borough and never treats synthetic data as evidence. A stale but previously published result is labeled as such.
+
+The same pure function, `explainChange`, is exported by `site/drivers.mjs` for reuse from deterministic agents or dashboards. It accepts only a validated aggregate, reports source and reporting windows, and does not infer causes. The evaluation covers offsetting changes, tie-breaking, current-only and previous-only categories, borough selection, missing or stale data, and reconciliation.
