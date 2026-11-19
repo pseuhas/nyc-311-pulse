@@ -1,4 +1,4 @@
-import {explainChange} from './drivers.mjs';
+import {cityBrief, explainChange} from './drivers.mjs';
 import {validateSnapshot, summarize, freshness, ALL, BOROUGHS} from './model.mjs';
 
 const byId = id => document.getElementById(id);
@@ -124,6 +124,11 @@ async function main() {
     state.textContent= mode==='sample' ? 'DEMO DATA · Synthetic counts for layout and testing, not actual 311 requests.' :
       (mode==='stale'?'STALE SNAPSHOT · Refresh overdue. ':'PUBLISHED DATA · ')+'Fetched '+refreshed+' New York time. Source counts may be revised.';
     byId('period').replaceChildren(text('span','REPORTING WINDOW','eyebrow'),text('strong',datesLabel(snapshot.current)),text('small','vs '+datesLabel(snapshot.previous)+' · New York dates'));
+    const brief=cityBrief(explainChange(snapshot,{limit:1}));
+    if (brief) {
+      byId('city-headline').textContent=brief.headline;
+      byId('city-dek').textContent=brief.detail;
+    }
     const opts=[ALL,...BOROUGHS.filter(b=>[snapshot.current,snapshot.previous].some(p=>p.rows.some(row=>row[1]===b)))];
     area.replaceChildren(...opts.map(name=>{const o=text('option',name);o.value=name;return o;}));
     area.addEventListener('change',()=>{rowLimit=12;render()});

@@ -64,3 +64,5 @@ footer p{max-width:65ch;margin-top:5px}
 .driver-delta{font-variant-numeric:tabular-nums;font-size:1.25rem;color:var(--green)}
 .driver-delta[data-direction="down"]{color:#8e3e21}
 @media(max-width:730px){.driver-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+#city-headline{font-size:clamp(2.8rem,7.2vw,6rem);line-height:.98;max-width:14ch;letter-spacing:-.075em;text-wrap:balance}

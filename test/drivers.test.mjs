@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {explainChange,DATASET} from '../analysis/drivers.mjs';
+import {cityBrief} from '../site/drivers.mjs';
 
 const live = () => {
   const mk=(start,end,segments)=>({start,end,rows:[
@@ -54,4 +55,22 @@ test('empty public borough is explicit and invalid arguments are rejected',()=>{
   assert.deepEqual(r.drivers,[]);
   assert.throws(()=>run(live(),{borough:'Atlantis'}),/Unsupported/);
   assert.throws(()=>run(live(),{limit:9999}),/Limit/);
+});
+
+test('city brief reports the total and largest signed change without a borough choice',()=>{
+  const brief=cityBrief(run(live(),{limit:1}));
+  assert.equal(brief.headline,'311 requests rose 6.4%.');
+  assert.equal(brief.detail,'116 citywide requests vs. 109 the week before. Largest swing: Heat (+16).');
+  assert.deepEqual(cityBrief(run(live(),{limit:1,now:new Date('2026-11-23T06:00:00Z')})),brief);
+  assert.equal(cityBrief(run(live(),{borough:'Bronx'})),null);
+  const sample=live(); sample.mode='sample';
+  assert.equal(cityBrief(run(sample)),null);
+  assert.equal(cityBrief(run(null)),null);
+});
+test('city brief handles flat volume and does not round away a nonzero change',()=>{
+  const mk=(current,previous)=>cityBrief({scope:'All boroughs',status:'recent',reconciled:true,
+    totals:{current,previous,netDelta:current-previous},drivers:[]});
+  assert.equal(mk(10,10).headline,'311 requests held steady.');
+  assert.equal(mk(9999,10000).headline,'311 requests fell less than 0.1%.');
+  assert.equal(mk(8,0).headline,'311 requests rose.');
 });

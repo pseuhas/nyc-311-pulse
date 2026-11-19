@@ -42,3 +42,20 @@ export function explainChange(snapshot, {borough = ALL, limit = 5, now = new Dat
     drivers, omittedCategories:ranked.length-drivers.length, otherDelta:allDelta-subtotal, reconciled:true,
   };
 }
+
+
+const briefCount = new Intl.NumberFormat('en-US');
+const briefPct = new Intl.NumberFormat('en-US',{style:'percent',maximumFractionDigits:1});
+export function cityBrief(report) {
+  if (report?.scope !== ALL || !report.reconciled || !['recent','stale'].includes(report.status)) return null;
+  const {current,previous,netDelta}=report.totals;
+  const magnitude=previous>0 ? briefPct.format(Math.abs(netDelta/previous)) : '';
+  const label=magnitude==='0%' && netDelta!==0 ? 'less than 0.1%' : magnitude;
+  const headline=netDelta===0 ? '311 requests held steady.' :
+    '311 requests '+(netDelta>0?'rose':'fell')+(label?' '+label:'')+'.';
+  const compare=briefCount.format(current)+' citywide requests vs. '+briefCount.format(previous)+' the week before.';
+  const driver=report.drivers[0];
+  const detail=driver ? compare+' Largest swing: '+driver.name+
+    ' ('+(driver.delta>0?'+':'−')+briefCount.format(Math.abs(driver.delta))+').' : compare;
+  return {headline,detail};
+}
