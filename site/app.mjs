@@ -1,3 +1,4 @@
+import {explainChange} from './drivers.mjs';
 import {validateSnapshot, summarize, freshness, ALL, BOROUGHS} from './model.mjs';
 
 const byId = id => document.getElementById(id);
@@ -61,6 +62,31 @@ function renderCategories() {
   more.textContent='Show more problems ('+fmt.format(Math.max(0,matching.length-rowLimit))+' remaining)';
 }
 
+function renderDrivers() {
+  const report=explainChange(snapshot,{borough:area.value,limit:3});
+  const host=byId('change-drivers');
+  if (!report.reconciled) {
+    host.replaceChildren(text('p',report.reason,'drivers-note'));
+    return;
+  }
+  const deltaFmt=new Intl.NumberFormat('en-US',{signDisplay:'exceptZero'});
+  const covering=report.omittedCategories>0;
+  const list=document.createElement('ul');
+  list.className='driver-list';
+  const add=(label,delta)=>{
+    const li=document.createElement('li');
+    const amount=text('strong',deltaFmt.format(delta),'driver-delta');
+    amount.dataset.direction=delta>0?'up':delta<0?'down':'flat';
+    li.append(text('span',label),amount);
+    list.append(li);
+  };
+  for(const driver of report.drivers) add(driver.name,driver.delta);
+  if(covering) add('Other problems ('+fmt.format(report.omittedCategories)+')',report.otherDelta);
+  const total=text('p','Net change · '+deltaFmt.format(report.totals.netDelta)+' requests · '+report.scope,'drivers-total');
+  const caveat=text('p',((report.status==='stale')?report.reason+' ':'')+'These counts show what contributed to the change, not what caused it.','drivers-note');
+  host.replaceChildren(total,report.drivers.length?list:text('p','No reported problem changed in this selection.','drivers-note'),caveat);
+}
+
 function render() {
   view=summarize(snapshot,area.value);
   const total=view.total, top=view.byCategory.find(c=>c.current>0);
@@ -82,6 +108,7 @@ function render() {
     return b;
   });
   byId('boroughs').replaceChildren(...rows);
+  renderDrivers();
   chart();
   renderCategories();
 }

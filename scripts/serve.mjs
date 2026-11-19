@@ -7,6 +7,7 @@ const paths = new Map([
   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
   ['/app.mjs', ['app.mjs', 'application/javascript; charset=utf-8']],
   ['/model.mjs', ['model.mjs', 'application/javascript; charset=utf-8']],
+  ['/drivers.mjs', ['drivers.mjs', 'application/javascript; charset=utf-8']],
   ['/pulse.json', ['pulse.json', 'application/json; charset=utf-8']]
 ]);
 const port = Number(process.env.PORT ?? 4173);
