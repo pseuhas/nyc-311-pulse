@@ -1,6 +1,9 @@
 import { ALL, BOROUGHS, freshness, summarize, validateSnapshot } from './model.mjs';
 
 export const DATASET = 'https://data.cityofnewyork.us/d/erm2-nwe9';
+const fmt = new Intl.NumberFormat('en-US');
+const pct = new Intl.NumberFormat('en-US', {style:'percent', maximumFractionDigits:1});
+const nyDate = new Intl.DateTimeFormat('en-US', {timeZone:'America/New_York', dateStyle:'medium'});
 const MAX_DRIVERS = 12;
 const ABSENT_METHODOLOGY = 'Requires a valid two-window snapshot; no estimates or causal claims.';
 const METHODOLOGY = 'Counts are 311 service requests, not unique incidents or underlying prevalence. These are arithmetic contributions to observed change, not evidence of cause.';
@@ -43,19 +46,34 @@ export function explainChange(snapshot, {borough = ALL, limit = 5, now = new Dat
   };
 }
 
+export function weeklyBrief(report) {
+  const scope = report.scope === ALL ? 'NYC' : report.scope;
+  if (report.status === 'sample') return {
+    headline:'Explore the demo', detail:'Example data, not a report on real 311 activity.',
+  };
+  if (!report.reconciled) return {
+    headline:'Weekly comparison unavailable', detail:report.reason,
+  };
 
-const briefCount = new Intl.NumberFormat('en-US');
-const briefPct = new Intl.NumberFormat('en-US',{style:'percent',maximumFractionDigits:1});
-export function cityBrief(report) {
-  if (report?.scope !== ALL || !report.reconciled || !['recent','stale'].includes(report.status)) return null;
-  const {current,previous,netDelta}=report.totals;
-  const magnitude=previous>0 ? briefPct.format(Math.abs(netDelta/previous)) : '';
-  const label=magnitude==='0%' && netDelta!==0 ? 'less than 0.1%' : magnitude;
-  const headline=netDelta===0 ? '311 requests held steady.' :
-    '311 requests '+(netDelta>0?'rose':'fell')+(label?' '+label:'')+'.';
-  const compare=briefCount.format(current)+' citywide requests vs. '+briefCount.format(previous)+' the week before.';
-  const driver=report.drivers[0];
-  const detail=driver ? compare+' Largest swing: '+driver.name+
-    ' ('+(driver.delta>0?'+':'−')+briefCount.format(Math.abs(driver.delta))+').' : compare;
-  return {headline,detail};
+  const {current, previous, netDelta} = report.totals;
+  const historical = report.status === 'stale';
+  const prefix = historical ? 'Archived comparison' : 'Matched weekdays';
+  const title = scope === 'Unspecified' ? 'Borough not recorded' : scope;
+  let headline;
+  if (previous === 0) {
+    headline = current === 0 ? `${title}: no requests in either window` : `${title}: no prior-week baseline`;
+  } else if (netDelta === 0) {
+    headline = `${title} 311 requests held steady`;
+  } else {
+    const rate = Math.abs(netDelta / previous);
+    const magnitude = rate < 0.001 ? 'less than 0.1%' : pct.format(rate);
+    headline = `${title} 311 requests ${netDelta > 0 ? 'rose' : 'fell'} ${magnitude}`;
+  }
+
+  const counts = `${fmt.format(current)} requests vs. ${fmt.format(previous)} the week before.`;
+  const driver = report.drivers[0];
+  const signed = n => `${n > 0 ? '+' : '−'}${fmt.format(Math.abs(n))}`;
+  const movement = driver ? ` Largest change: ${driver.name} (${signed(driver.delta)} requests).` : '';
+  const date = historical ? ` Snapshot fetched ${nyDate.format(new Date(report.fetchedAt))}.` : '';
+  return {headline, detail:`${prefix}: ${counts}${movement}${date}`};
 }

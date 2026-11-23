@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {explainChange,DATASET} from '../analysis/drivers.mjs';
-import {cityBrief} from '../site/drivers.mjs';
+import {weeklyBrief} from "../site/drivers.mjs";
 
 const live = () => {
   const mk=(start,end,segments)=>({start,end,rows:[
@@ -57,20 +57,46 @@ test('empty public borough is explicit and invalid arguments are rejected',()=>{
   assert.throws(()=>run(live(),{limit:9999}),/Limit/);
 });
 
-test('city brief reports the total and largest signed change without a borough choice',()=>{
-  const brief=cityBrief(run(live(),{limit:1}));
-  assert.equal(brief.headline,'311 requests rose 6.4%.');
-  assert.equal(brief.detail,'116 citywide requests vs. 109 the week before. Largest swing: Heat (+16).');
-  assert.deepEqual(cityBrief(run(live(),{limit:1,now:new Date('2026-11-23T06:00:00Z')})),brief);
-  assert.equal(cityBrief(run(live(),{borough:'Bronx'})),null);
-  const sample=live(); sample.mode='sample';
-  assert.equal(cityBrief(run(sample)),null);
-  assert.equal(cityBrief(run(null)),null);
+test('weekly brief uses selected scope and the matching borough denominator', () => {
+  assert.deepEqual(weeklyBrief(run(live(),{borough:'Bronx'})), {
+    headline:'Bronx 311 requests rose 11.1%',
+    detail:'Matched weekdays: 30 requests vs. 27 the week before. Largest change: Heat (+16 requests).',
+  });
+  assert.match(weeklyBrief(run(live())).headline,/^NYC 311 requests rose 6.4%$/);
+  assert.match(weeklyBrief(run(live(),{borough:'Brooklyn'})).headline,/^Brooklyn 311 requests rose 33.3%$/);
 });
-test('city brief handles flat volume and does not round away a nonzero change',()=>{
-  const mk=(current,previous)=>cityBrief({scope:'All boroughs',status:'recent',reconciled:true,
-    totals:{current,previous,netDelta:current-previous},drivers:[]});
-  assert.equal(mk(10,10).headline,'311 requests held steady.');
-  assert.equal(mk(9999,10000).headline,'311 requests fell less than 0.1%.');
-  assert.equal(mk(8,0).headline,'311 requests rose.');
+
+test('weekly brief does not divide by zero or round a small move to zero', () => {
+  const fixture=live();
+  fixture.current.rows.push([fixture.current.start,'Manhattan','Noise',5]);
+  assert.match(weeklyBrief(run(fixture,{borough:'Manhattan'})).headline,/no prior-week baseline$/);
+  assert.match(weeklyBrief(run(fixture,{borough:'Manhattan'})).detail,/5 requests vs. 0/);
+  assert.match(weeklyBrief(run(fixture,{borough:'Staten Island'})).headline,/no requests in either window$/);
+  fixture.current.rows.push([fixture.current.start,'Staten Island','Heat',9999]);
+  fixture.previous.rows.push([fixture.previous.start,'Staten Island','Heat',10000]);
+  assert.match(weeklyBrief(run(fixture,{borough:'Staten Island'})).headline,/fell less than 0.1%$/);
+});
+
+test('weekly briefs distinguish stale, demo and incomplete snapshots', () => {
+  const fixture=live();
+  assert.match(weeklyBrief(run(fixture,{now:new Date('2026-11-22T00:00:00Z')})).detail,
+    /^Archived comparison:.*Snapshot fetched Nov 19, 2026\.$/);
+  fixture.current.rows=fixture.current.rows.filter(r=>r[0]!=='2026-11-12');
+  assert.deepEqual(weeklyBrief(run(fixture)), {
+    headline:'Weekly comparison unavailable',detail:'The snapshot has a missing reporting date.',
+  });
+  fixture.mode='sample';
+  assert.deepEqual(weeklyBrief(run(fixture)), {
+    headline:'Explore the demo',detail:'Example data, not a report on real 311 activity.',
+  });
+});
+
+test('a flat comparison can still have a largest individual change', () => {
+  const fixture=live();
+  for(const period of [fixture.current,fixture.previous]) {
+    period.rows=period.rows.filter(row=>row[2]==='Heat'||row[2]==='Parking'||row[1]==='Queens');
+  }
+  const brief=weeklyBrief(run(fixture,{borough:'Bronx'}));
+  assert.equal(brief.headline,'Bronx 311 requests held steady');
+  assert.match(brief.detail,/Largest change: Heat \(\+16 requests\)/);
 });
