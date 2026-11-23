@@ -1,4 +1,4 @@
-import {cityBrief, explainChange} from './drivers.mjs';
+import {explainChange, weeklyBrief} from './drivers.mjs';
 import {validateSnapshot, summarize, freshness, ALL, BOROUGHS} from './model.mjs';
 
 const byId = id => document.getElementById(id);
@@ -62,8 +62,7 @@ function renderCategories() {
   more.textContent='Show more problems ('+fmt.format(Math.max(0,matching.length-rowLimit))+' remaining)';
 }
 
-function renderDrivers() {
-  const report=explainChange(snapshot,{borough:area.value,limit:3});
+function renderDrivers(report) {
   const host=byId('change-drivers');
   if (!report.reconciled) {
     host.replaceChildren(text('p',report.reason,'drivers-note'));
@@ -108,7 +107,11 @@ function render() {
     return b;
   });
   byId('boroughs').replaceChildren(...rows);
-  renderDrivers();
+  const report=explainChange(snapshot,{borough:area.value,limit:3});
+  const brief=weeklyBrief(report);
+  byId('city-headline').textContent=brief.headline;
+  byId('city-dek').textContent=brief.detail;
+  renderDrivers(report);
   chart();
   renderCategories();
 }
@@ -118,18 +121,20 @@ async function main() {
     const response = await fetch('./pulse.json');
     if(!response.ok) throw Error('Missing snapshot');
     snapshot=validateSnapshot(await response.json());
+    const coverage=explainChange(snapshot,{limit:1});
+    if(coverage.status==='unavailable') {
+      state.dataset.mode='error';
+      state.textContent='Weekly comparison unavailable. '+coverage.reason;
+      byId('period').replaceChildren(text('span','REPORTING WINDOW','eyebrow'),text('strong','Unavailable'));
+      return;
+    }
     const mode=freshness(snapshot);
     state.dataset.mode=mode;
     const refreshed=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',dateStyle:'medium',timeStyle:'short'}).format(new Date(snapshot.generatedAt));
     state.textContent= mode==='sample' ? 'DEMO DATA · Synthetic counts for layout and testing, not actual 311 requests.' :
       (mode==='stale'?'STALE SNAPSHOT · Refresh overdue. ':'PUBLISHED DATA · ')+'Fetched '+refreshed+' New York time. Source counts may be revised.';
     byId('period').replaceChildren(text('span','REPORTING WINDOW','eyebrow'),text('strong',datesLabel(snapshot.current)),text('small','vs '+datesLabel(snapshot.previous)+' · New York dates'));
-    const brief=cityBrief(explainChange(snapshot,{limit:1}));
-    if (brief) {
-      byId('city-headline').textContent=brief.headline;
-      byId('city-dek').textContent=brief.detail;
-    }
-    const opts=[ALL,...BOROUGHS.filter(b=>[snapshot.current,snapshot.previous].some(p=>p.rows.some(row=>row[1]===b)))];
+    const opts=[ALL,...BOROUGHS.filter(b=>b!=='Unspecified'||[snapshot.current,snapshot.previous].some(p=>p.rows.some(row=>row[1]===b)))];
     area.replaceChildren(...opts.map(name=>{const o=text('option',name);o.value=name;return o;}));
     area.addEventListener('change',()=>{rowLimit=12;render()});
     search.addEventListener('input',()=>{rowLimit=12;renderCategories()});
